@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.pill.mapper.PillDashboardMapper">
+
+    <!-- 仪表盘统计信息 -->
+    <select id="selectDashboardStats" parameterType="Long" resultType="com.ruoyi.pill.domain.DashboardVo">
+        SELECT
+                (SELECT COUNT(*) FROM pill_drug) AS totalDrugs,
+                (SELECT COUNT(*) FROM pill_order WHERE DATE(create_time) = CURDATE()) AS todayOrders,
+                (SELECT COUNT(*) FROM pill_drug WHERE num &lt;= warn_value) AS lowInventory,
+                (SELECT COUNT(*) FROM pill_factory) AS totalFactories,
+                -- 可购药品数量（状态正常且有库存）
+                (SELECT COUNT(*) FROM pill_drug WHERE status = '0' AND num > 0) AS availableDrugs,
+                -- 我的订单总数
+                (SELECT COUNT(*) FROM pill_order WHERE user_id = #{userId}) AS myTotalOrders
+    </select>
+
+    <resultMap id="RecentOrderResult" type="RecentOrderDTO">
+        <result property="orderId" column="order_id"/>
+        <result property="drugName" column="drug_name"/>
+        <result property="quantity" column="quantity"/>
+        <result property="totalPrice" column="total_price"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+    <resultMap id="AllOrderResult" type="pillAllOrder">
+        <result property="orderId" column="order_id"/>
+        <result property="drugName" column="drug_name"/>
+        <result property="quantity" column="quantity"/>
+        <result property="totalPrice" column="total_price"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <select id="selectRecentOrders" resultMap="RecentOrderResult">
+        SELECT
+            o.order_id,
+            d.drug_name,
+            o.quantity,
+            o.total_price,
+            o.create_time
+        FROM pill_order o
+                 LEFT JOIN pill_drug d ON o.drug_id = d.drug_id
+        WHERE o.user_id = #{userId}
+        ORDER BY o.create_time DESC
+        LIMIT 5
+    </select>
+    <select id="selectAllOrders" resultMap="AllOrderResult">
+        SELECT
+            o.order_id,
+            d.drug_name,
+            o.quantity,
+            o.total_price,
+            o.create_time
+        FROM pill_order o
+                 LEFT JOIN pill_drug d ON o.drug_id = d.drug_id
+        WHERE o.user_id = #{userId}
+        ORDER BY o.create_time DESC
+        LIMIT 5
+    </select>
+
+    <select id="selectWarningDrugs" resultType="com.ruoyi.pill.domain.WarningDrugDTO">
+        SELECT
+            drug_id as drugId,
+            drug_name as drugName,
+            num
+        FROM pill_drug
+        WHERE num &lt;= warn_value
+    </select>
+
+</mapper>

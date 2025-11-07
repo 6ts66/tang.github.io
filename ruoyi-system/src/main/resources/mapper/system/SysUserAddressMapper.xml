@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.SysUserAddressMapper">
+
+    <resultMap type="SysUserAddress" id="SysUserAddressResult">
+        <id property="addressId" column="address_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="receiverName" column="receiver_name"/>
+        <result property="receiverPhone" column="receiver_phone"/>
+        <result property="address" column="address"/>
+        <result property="isDefault" column="is_default"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="selectAddressVo">
+        select address_id, user_id, receiver_name, receiver_phone, address, is_default, create_time, update_time
+        from sys_user_address
+    </sql>
+
+    <!-- 查询用户地址列表 -->
+    <select id="selectByUserId" parameterType="Long" resultMap="SysUserAddressResult">
+        <include refid="selectAddressVo"/>
+        where user_id = #{userId}
+        order by is_default desc, create_time desc
+    </select>
+
+    <!-- 新增地址 -->
+    <insert id="insert" parameterType="SysUserAddress" useGeneratedKeys="true" keyProperty="addressId">
+        insert into sys_user_address (
+            user_id, receiver_name, receiver_phone, address, is_default, create_time
+        ) values (
+                     #{userId}, #{receiverName}, #{receiverPhone}, #{address}, #{isDefault}, sysdate()
+                 )
+    </insert>
+
+    <!-- 修改地址 -->
+    <update id="update" parameterType="SysUserAddress">
+        update sys_user_address
+        <set>
+            <if test="receiverName != null and receiverName != ''">receiver_name = #{receiverName},</if>
+            <if test="receiverPhone != null and receiverPhone != ''">receiver_phone = #{receiverPhone},</if>
+            <if test="address != null and address != ''">address = #{address},</if>
+            <if test="isDefault != null">is_default = #{isDefault},</if>
+            update_time = sysdate()
+        </set>
+        where address_id = #{addressId}
+    </update>
+
+    <!-- 删除地址 -->
+    <delete id="delete">
+        delete from sys_user_address where address_id = #{addressId}
+    </delete>
+
+    <!-- 设置默认地址 -->
+    <update id="setDefault">
+        update sys_user_address
+        set is_default = 1, update_time = sysdate()
+        where address_id = #{addressId} and user_id = #{userId}
+    </update>
+
+    <!-- 取消其他默认地址 -->
+    <update id="cancelOtherDefault">
+        update sys_user_address
+        set is_default = 0, update_time = sysdate()
+        where user_id = #{userId} and is_default = 1
+        <if test="addressId != null">
+            and address_id != #{addressId}
+        </if>
+    </update>
+
+</mapper>

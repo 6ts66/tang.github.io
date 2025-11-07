@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.pill.mapper.PillOrderMapper">
+    
+    <resultMap type="PillOrder" id="PillOrderResult">
+        <result property="orderId"    column="order_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="drugId"    column="drug_id"    />
+        <result property="quantity"    column="quantity"    />
+        <result property="totalPrice"    column="total_price"    />
+        <result property="createTime"    column="create_time"    />
+        <!-- 添加药品关联字段 -->
+        <result property="drugName" column="drug_name"/>
+        <result property="drugCode" column="drug_code"/>
+        <result property="unitPrice" column="unit_price"/>
+        <result property="status" column="status"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!--<sql id="selectPillOrderVo">
+        select order_id, user_id, drug_id, quantity, total_price, create_time from pill_order
+    </sql>-->
+    <sql id="selectPillOrderVo">
+        SELECT
+            o.order_id,
+            o.user_id,
+            u.user_name,
+            o.drug_id,
+            d.drug_name,
+            d.drug_code,
+            o.quantity,
+            o.total_price,
+            o.create_time,
+            o.status
+        FROM pill_order o
+                 LEFT JOIN sys_user u ON o.user_id = u.user_id
+                 LEFT JOIN pill_drug d ON o.drug_id = d.drug_id
+    </sql>
+
+    <!--<select id="selectPillOrderListByUserId" parameterType="PillOrder" resultMap="PillOrderResult">
+        <include refid="selectPillOrderVo"/>
+        <where>
+            &lt;!&ndash; 关键：只查询当前用户的数据 &ndash;&gt;
+            and user_id = #{userId}
+
+            <if test="order.drugId != null"> and drug_id = #{order.drugId}</if>
+        </where>
+#                  修改排序方式：从降序改为升序
+        ORDER BY create_time ASC
+    </select>-->
+    <select id="selectPillOrderListByUserId" parameterType="PillOrder" resultMap="PillOrderResult">
+        SELECT
+        o.order_id,
+        o.user_id,
+        o.drug_id,
+        o.quantity,
+        o.total_price,
+        o.create_time,
+        o.status,
+        d.drug_name,
+        d.drug_code,
+        d.price as unit_price
+        FROM pill_order o
+        LEFT JOIN pill_drug d ON o.drug_id = d.drug_id
+        <where>
+            and o.user_id = #{userId}
+            <!-- 使用正确的参数路径 -->
+            <if test="order.drugId != null"> and o.drug_id = #{order.drugId}</if>
+            <!-- 新增：使用order.orderId -->
+            <if test="order.orderId != null"> and o.order_id = #{order.orderId}</if>
+            <!-- 使用正确的参数路径 -->
+            <if test="order.drugName != null and order.drugName != ''">
+                and d.drug_name like concat('%', #{order.drugName}, '%')
+            </if>
+        </where>
+        ORDER BY o.create_time ASC
+    </select>
+
+    <!--<select id="selectPillOrderList" parameterType="PillOrder" resultMap="PillOrderResult">
+        <include refid="selectPillOrderVo"/>
+        <where>
+            &lt;!&ndash;<if test="drugId != null "> and drug_id = #{drugId}</if>
+            <if test="orderId != null "> and order_id = #{orderId}</if>&ndash;&gt;
+            <if test="drugId != null "> and d.drug_id = #{drugId}</if>
+            <if test="orderId != null "> and o.order_id = #{orderId}</if>
+        </where>
+&lt;!&ndash;        ORDER BY order_id ASC&ndash;&gt;
+    </select>-->
+    <select id="selectPillOrderList" parameterType="PillOrder" resultMap="PillOrderResult">
+        <include refid="selectPillOrderVo"/>
+        <where>
+            <!--<if test="drugId != null "> and drug_id = #{drugId}</if>-->
+            <if test="drugId != null "> and d.drug_id = #{drugId}</if>
+            <if test="orderId != null "> and o.order_id = #{orderId}</if>
+        </where>
+        ORDER BY o.create_time ASC
+    </select>
+    <select id="selectPillOrderByOrderId" parameterType="Long" resultMap="PillOrderResult">
+        <include refid="selectPillOrderVo"/>
+        where order_id = #{orderId}
+    </select>
+        
+    <insert id="insertPillOrder" parameterType="PillOrder" useGeneratedKeys="true" keyProperty="orderId">
+        insert into pill_order
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="drugId != null">drug_id,</if>
+            <if test="quantity != null">quantity,</if>
+            <if test="totalPrice != null">total_price,</if>
+            <if test="createTime != null">create_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="drugId != null">#{drugId},</if>
+            <if test="quantity != null">#{quantity},</if>
+            <if test="totalPrice != null">#{totalPrice},</if>
+            <if test="createTime != null">#{createTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updatePillOrder" parameterType="PillOrder">
+        update pill_order
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="drugId != null">drug_id = #{drugId},</if>
+            <if test="quantity != null">quantity = #{quantity},</if>
+            <if test="totalPrice != null">total_price = #{totalPrice},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where order_id = #{orderId}
+    </update>
+
+    <delete id="deletePillOrderByOrderId" parameterType="Long">
+        delete from pill_order where order_id = #{orderId}
+    </delete>
+
+    <delete id="deletePillOrderByOrderIds" parameterType="String">
+        delete from pill_order where order_id in 
+        <foreach item="orderId" collection="array" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+    </delete>
+
+    <!-- 在 PillOrderMapper.xml 中添加 -->
+    <update id="updateOrderStatus">
+        UPDATE pill_order
+        SET status = #{status}, update_time = NOW()
+        WHERE order_id = #{orderId}
+    </update>
+
+    <update id="updateOrderStatusBatch">
+        UPDATE pill_order
+        SET status = #{status}, update_time = NOW()
+        WHERE order_id IN
+        <foreach item="item" collection="orderIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </update>
+</mapper>
